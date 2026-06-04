@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 BigInt             @id @default(autoincrement())
+  academicYear       String?            @map("academic_year") @db.VarChar(255)
+  createdAt          DateTime?          @map("created_at") @db.DateTime(6)
+  department         String?            @db.VarChar(255)
+  email              String             @unique(map: "UK6dotkott2kjsp8vw4d0m25fb7") @db.VarChar(255)
+  gender             String?            @db.VarChar(255)
+  name               String?            @db.VarChar(255)
+  notifications      Json?
+  password           String?            @db.VarChar(255)
+  role               String?            @db.VarChar(255)
+  sportsInterested   Json?              @map("sports_interested")
+  updatedAt          DateTime?          @map("updated_at") @db.DateTime(6)
+  usn                String?            @db.VarChar(255)
+  walletBalance      Float?             @map("wallet_balance")
+  announcements      Announcement[]     @relation("AnnouncementSender")
+  bookings           Booking[]
+  equipmentRentals   EquipmentRental[]
+  createdEvents      Event[]            @relation("EventCreator")
+  facilities         Facility[]
+  facility_members   facility_members[] @ignore
+  healthProfile      HealthProfile?
+  sportMemberships   SportMember[]      @ignore
+  coordinatingSports Sport[]            @relation("SportCoordinator")
+
+  @@map("users")
+}
+
+model Sport {
+  id            BigInt         @id @default(autoincrement())
+  description   String?        @db.VarChar(500)
+  isActive      Boolean?       @map("is_active") @db.Bit(1)
+  name          String         @unique(map: "UKtj61or3k005spbrx0lgjpwtde") @db.VarChar(255)
+  coordinatorId BigInt?        @map("coordinator_id")
+  announcements Announcement[]
+  facilities    Facility[]
+  members       SportMember[]  @ignore
+  coordinator   User?          @relation("SportCoordinator", fields: [coordinatorId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKbrqicug8jum9ny50hoeqe4pua")
+
+  @@index([coordinatorId], map: "FKbrqicug8jum9ny50hoeqe4pua")
+  @@map("sports")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model SportMember {
+  sportId BigInt @map("sport_id")
+  userId  BigInt @map("user_id")
+  sport   Sport  @relation(fields: [sportId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK4g2vav195lfjiwcix72wibuax")
+  user    User   @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKiti4dfvig4h0ejy0cokcbk2v9")
+
+  @@index([sportId], map: "FK4g2vav195lfjiwcix72wibuax")
+  @@index([userId], map: "FKiti4dfvig4h0ejy0cokcbk2v9")
+  @@map("sport_members")
+  @@ignore
+}
+
+model Facility {
+  id               BigInt             @id @default(autoincrement())
+  description      String?            @db.VarChar(500)
+  isActive         Boolean?           @map("is_active") @db.Bit(1)
+  location         String?            @db.VarChar(255)
+  name             String?            @db.VarChar(255)
+  sports_type      String?            @db.VarChar(255)
+  coordinator_id   BigInt?
+  sportId          BigInt             @map("sport_id")
+  announcements    Announcement[]
+  bookings         Booking[]
+  slots            CourtSlot[]
+  users            User?              @relation(fields: [coordinator_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK61hc6mex2meq2ss3vb6ud9cp3")
+  sport            Sport              @relation(fields: [sportId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKt1dh5dxednk0o4u2e0tm3wqrf")
+  facility_members facility_members[] @ignore
+
+  @@index([coordinator_id], map: "FK61hc6mex2meq2ss3vb6ud9cp3")
+  @@index([sportId], map: "FKt1dh5dxednk0o4u2e0tm3wqrf")
+  @@map("facilities")
+}
+
+model CourtSlot {
+  id         BigInt    @id @default(autoincrement())
+  amount     Float?
+  createdAt  DateTime? @map("created_at") @db.DateTime(6)
+  date       DateTime? @db.Date
+  endTime    String?   @map("end_time") @db.VarChar(255)
+  startTime  String?   @map("start_time") @db.VarChar(255)
+  status     String?   @db.VarChar(255)
+  facilityId BigInt    @map("facility_id")
+  bookings   Booking[]
+  facility   Facility  @relation(fields: [facilityId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK41035bxqbr5axlhvmqgar18nk")
+
+  @@index([facilityId], map: "FK41035bxqbr5axlhvmqgar18nk")
+  @@map("court_slots")
+}
+
+model Booking {
+  id            BigInt    @id @default(autoincrement())
+  amount        Float?
+  bookingStatus String?   @map("booking_status") @db.VarChar(255)
+  createdAt     DateTime? @map("created_at") @db.DateTime(6)
+  paymentStatus String?   @map("payment_status") @db.VarChar(255)
+  facilityId    BigInt    @map("facility_id")
+  slotId        BigInt    @map("slot_id")
+  userId        BigInt    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKeyog2oic85xg7hsu2je2lx3s6")
+  facility      Facility  @relation(fields: [facilityId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKovcktajgjh8wo5wrx0e2j2jpd")
+  slot          CourtSlot @relation(fields: [slotId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKv1kxiiswj0qtd3jrs57wclh6")
+
+  @@index([userId], map: "FKeyog2oic85xg7hsu2je2lx3s6")
+  @@index([facilityId], map: "FKovcktajgjh8wo5wrx0e2j2jpd")
+  @@index([slotId], map: "FKv1kxiiswj0qtd3jrs57wclh6")
+  @@map("bookings")
+}
+
+model Equipment {
+  id                BigInt            @id @default(autoincrement())
+  isActive          Boolean?          @map("is_active") @db.Bit(1)
+  name              String?           @db.VarChar(255)
+  quantityAvailable Int?              @map("quantity_available")
+  quantityTotal     Int?              @map("quantity_total")
+  rentAmount        Float?            @map("rent_amount")
+  rentPerHour       Float?            @map("rent_per_hour")
+  sportsType        String?           @map("sports_type") @db.VarChar(255)
+  rentals           EquipmentRental[]
+
+  @@map("equipments")
+}
+
+model EquipmentRental {
+  id            BigInt    @id @default(autoincrement())
+  paymentStatus String?   @map("payment_status") @db.VarChar(255)
+  quantity      Int
+  rentAmount    Float?    @map("rent_amount")
+  rentalStatus  String?   @map("rental_status") @db.VarChar(255)
+  rentedAt      DateTime? @map("rented_at") @db.DateTime(6)
+  returnedAt    DateTime? @map("returned_at") @db.DateTime(6)
+  equipmentId   BigInt    @map("equipment_id")
+  userId        BigInt    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKbwvvalb98v578iei42o2jknig")
+  equipment     Equipment @relation(fields: [equipmentId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKisl47ugoeiin2xannr6nl2dh5")
+
+  @@index([userId], map: "FKbwvvalb98v578iei42o2jknig")
+  @@index([equipmentId], map: "FKisl47ugoeiin2xannr6nl2dh5")
+  @@map("equipment_rentals")
+}
+
+model Event {
+  eventId          BigInt    @id @default(autoincrement()) @map("event_id")
+  date             DateTime? @db.Date
+  description      String?   @db.Text
+  registrationLink String?   @map("registration_link") @db.VarChar(255)
+  sportType        String?   @map("sport_type") @db.VarChar(255)
+  time             DateTime? @db.Time(6)
+  title            String?   @db.VarChar(255)
+  venue            String?   @db.VarChar(255)
+  createdById      BigInt?   @map("created_by")
+  createdBy        User?     @relation("EventCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKlelt1nheas1gmn9t0nmc37a89")
+
+  @@index([createdById], map: "FKlelt1nheas1gmn9t0nmc37a89")
+  @@map("event")
+}
+
+model Announcement {
+  id          BigInt    @id @default(autoincrement())
+  createdAt   DateTime? @map("created_at") @db.DateTime(6)
+  message     String?   @db.VarChar(2000)
+  title       String?   @db.VarChar(255)
+  facility_id BigInt
+  senderId    BigInt    @map("sender_id")
+  sportId     BigInt    @map("sport_id")
+  sender      User      @relation("AnnouncementSender", fields: [senderId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKnfenw8q9a1fbe4v33enorh1mr")
+  facilities  Facility  @relation(fields: [facility_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKp3hru3g1wtkdkteurlllq5o3v")
+  sport       Sport     @relation(fields: [sportId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKt0v38uqo37jnn1uh5bafs31mo")
+
+  @@index([senderId], map: "FKnfenw8q9a1fbe4v33enorh1mr")
+  @@index([facility_id], map: "FKp3hru3g1wtkdkteurlllq5o3v")
+  @@index([sportId], map: "FKt0v38uqo37jnn1uh5bafs31mo")
+  @@map("announcements")
+}
+
+model HealthProfile {
+  id            BigInt    @id @default(autoincrement())
+  bloodGroup    String?   @map("blood_group") @db.VarChar(255)
+  bmi           Float?
+  heightCm      Float?    @map("height_cm")
+  injuryReports String?   @map("injury_reports") @db.VarChar(1000)
+  staminaScore  Int?      @map("stamina_score")
+  updatedAt     DateTime? @map("updated_at") @db.DateTime(6)
+  weightKg      Float?    @map("weight_kg")
+  userId        BigInt    @unique(map: "UK64htm6exubyqdisxxspd43bl4") @map("user_id")
+  user          User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK3tevdso70nrymmg3rgy76jqga")
+
+  @@map("health_profiles")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model facility_members {
+  facility_id BigInt
+  user_id     BigInt
+  users       User     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKgbbvkgkwfgcl92ort7bhabq7i")
+  facilities  Facility @relation(fields: [facility_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKt6d22fafukg2adxxo6fpxbrnh")
+
+  @@index([user_id], map: "FKgbbvkgkwfgcl92ort7bhabq7i")
+  @@index([facility_id], map: "FKt6d22fafukg2adxxo6fpxbrnh")
+  @@ignore
+}
